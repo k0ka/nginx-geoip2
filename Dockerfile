@@ -17,7 +17,7 @@ RUN	\
 # download sources
 	&& mkdir /app \
 	&& cd /app \
-	&& apt-get source nginx \
+	&& apt-get source nginx=${NGINX_VERSION} \
     && git clone https://github.com/leev/ngx_http_geoip2_module.git /app/ngx_http_geoip2_module \
 # build
 	&& cd /app/nginx-${NGINX_VERSION} \
