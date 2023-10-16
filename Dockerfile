@@ -4,7 +4,7 @@ FROM nginx:${NGINX_VERSION} AS base
 
 FROM base AS builder
 
-RUN	\ 
+RUN	\
 # get default configure options
 	nginx -V 2>&1 | grep "configure arguments:" | cut -d" " -f3- >/tmp/configure_options \
 # add deb-src
