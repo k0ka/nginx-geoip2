@@ -7,8 +7,8 @@ FROM base AS builder
 # get default configure options
 RUN	nginx -V 2>&1 | grep "configure arguments:" | cut -d" " -f3- >/tmp/configure_options
 
-# add deb-src
-RUN cat > /etc/apt/sources.list <<EOF
+# add deb
+COPY <<EOF /etc/apt/sources.list
     deb http://archive.debian.org/debian buster main contrib non-free
     deb http://archive.debian.org/debian-security buster/updates main contrib non-free
     deb-src https://nginx.org/packages/debian/ buster nginx
