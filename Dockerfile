@@ -1,4 +1,4 @@
-ARG NGINX_VERSION=1.18
+ARG NGINX_VERSION=1.20
 
 FROM nginx:${NGINX_VERSION} AS base
 
@@ -11,8 +11,10 @@ LABEL maintainer="koka@idwrx.com" \
 	description="${DESCRIPTION}" \
 	name="k0ka/nginx-geoip2"
 
-RUN echo 'deb http://archive.debian.org/debian buster main contrib non-free' >/etc/apt/sources.list \
-    && echo 'deb http://archive.debian.org/debian-security buster/updates main contrib non-free' >>/etc/apt/sources.list
+RUN . /etc/os-release && if [ "$VERSION_CODENAME" = "buster" ]; then \
+        echo 'deb http://archive.debian.org/debian buster main contrib non-free' >/etc/apt/sources.list \
+        && echo 'deb http://archive.debian.org/debian-security buster/updates main contrib non-free' >>/etc/apt/sources.list; \
+    fi
 
 FROM base AS builder
 
@@ -25,7 +27,8 @@ RUN apt-get update \
     && curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
 
 # add nginx sources
-RUN echo 'deb-src https://nginx.org/packages/debian/ buster nginx' >>/etc/apt/sources.list \
+RUN . /etc/os-release \
+    && echo "deb-src https://nginx.org/packages/debian/ ${VERSION_CODENAME} nginx" >>/etc/apt/sources.list \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
 		libmaxminddb0 libmaxminddb-dev curl git build-essential dpkg-dev \
