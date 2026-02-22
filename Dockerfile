@@ -1,22 +1,33 @@
-ARG NGINX_VERSION=1.18.0
+ARG NGINX_VERSION=1.18
 
 FROM nginx:${NGINX_VERSION} AS base
+
+ENV SUMMARY="Official nginx build with ngx_http_geoip2_module" \
+	DESCRIPTION="ngx_http_geoip2_module - creates variables with values from the maxmind geoip2 \
+	    databases based on the client IP (default) or from a specific variable (supports both IPv4 and IPv6)."
+
+LABEL maintainer="koka@idwrx.com" \
+	summary="${SUMMARY}" \
+	description="${DESCRIPTION}" \
+	name="k0ka/nginx-geoip2"
+
+RUN echo 'deb http://archive.debian.org/debian buster main contrib non-free' >/etc/apt/sources.list \
+    && echo 'deb http://archive.debian.org/debian-security buster/updates main contrib non-free' >>/etc/apt/sources.list
 
 FROM base AS builder
 
 # get default configure options
 RUN	nginx -V 2>&1 | grep "configure arguments:" | cut -d" " -f3- >/tmp/configure_options
 
-# add deb
-COPY <<EOF /etc/apt/sources.list
-    deb http://archive.debian.org/debian buster main contrib non-free
-    deb http://archive.debian.org/debian-security buster/updates main contrib non-free
-    deb-src https://nginx.org/packages/debian/ buster nginx
-EOF
+# add nginx signing key
+RUN apt-get update \
+    && apt-get install -y gnupg \
+    && curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
 
-# install needed packages
-RUN	 apt-get update \
-	&& apt-get install --no-install-recommends --no-install-suggests -y \
+# add nginx sources
+RUN echo 'deb-src https://nginx.org/packages/debian/ buster nginx' >>/etc/apt/sources.list \
+    && apt-get update \
+    && apt-get install --no-install-recommends --no-install-suggests -y \
 		libmaxminddb0 libmaxminddb-dev curl git build-essential dpkg-dev \
 	&& apt-get build-dep -y nginx=${NGINX_VERSION}-${PKG_RELEASE}
 
@@ -24,13 +35,13 @@ RUN	 apt-get update \
 RUN mkdir /app \
 	&& cd /app \
 	&& apt-get source nginx=${NGINX_VERSION} \
-    && git clone https://github.com/leev/ngx_http_geoip2_module.git /app/ngx_http_geoip2_module \
+    && git clone https://github.com/leev/ngx_http_geoip2_module.git /app/ngx_http_geoip2_module
 
 # build
 RUN cd /app/nginx-${NGINX_VERSION} \
 	&& eval ./configure "$(cat /tmp/configure_options)" --add-dynamic-module=/app/ngx_http_geoip2_module \
 	&& make 
-	
+
 FROM base
 
 RUN \
@@ -39,7 +50,5 @@ RUN \
 	&& apt-get purge -y --auto-remove
 
 COPY --from=builder /app/nginx-${NGINX_VERSION}/objs/ngx_http_geoip2_module.so /usr/lib/nginx/modules/ngx_http_geoip2_module.so
-
-MAINTAINER Konstantin Babushkin <k0ka@idwrx.com>
 
 
