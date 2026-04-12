@@ -2,9 +2,10 @@ ARG NGINX_VERSION=1.28
 
 FROM nginx:${NGINX_VERSION} AS base
 
-ENV SUMMARY="Official nginx build with ngx_http_geoip2_module" \
-	DESCRIPTION="ngx_http_geoip2_module - creates variables with values from the maxmind geoip2 \
-	    databases based on the client IP (default) or from a specific variable (supports both IPv4 and IPv6)."
+ENV SUMMARY="Official nginx build with added ngx_http_geoip2 and ngx_lua modules" \
+	DESCRIPTION="ngx_http_geoip2 module - creates variables with values from the maxmind geoip2 \
+	    databases based on the client IP (default) or from a specific variable (supports both IPv4 and IPv6). \
+	    ngx_lua module - adds lua support to nginx."
 
 LABEL maintainer="koka@idwrx.com" \
 	summary="${SUMMARY}" \
@@ -19,46 +20,36 @@ RUN . /etc/os-release \
 
 FROM base AS builder
 
-# get default configure options
-RUN	nginx -V 2>&1 | grep "configure arguments:" | cut -d" " -f3- >/tmp/configure_options
+SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
 RUN apt-get update \
-    && apt-get install -y gnupg
-
-# add nginx deb-src
-RUN . /etc/os-release \
-    && if command -v apt-key > /dev/null 2>&1; then \
-        curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -; \
-        echo "deb-src https://nginx.org/packages/debian/ ${VERSION_CODENAME} nginx" >> /etc/apt/sources.list; \
-    else \
-        curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg; \
-        echo "deb-src [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/debian/ ${VERSION_CODENAME} nginx" >> /etc/apt/sources.list; \
-    fi
-
-# add nginx sources
-RUN apt-get update \
-    && apt-get install --no-install-recommends --no-install-suggests -y \
-		libmaxminddb0 libmaxminddb-dev curl git build-essential dpkg-dev \
-	&& apt-get build-dep -y nginx=${NGINX_VERSION}-${PKG_RELEASE}
-
-# download sources
-RUN mkdir /app \
-	&& cd /app \
-	&& apt-get source nginx=${NGINX_VERSION} \
-    && git clone https://github.com/leev/ngx_http_geoip2_module.git /app/ngx_http_geoip2_module
-
-# build
-RUN cd /app/nginx-${NGINX_VERSION} \
-	&& eval ./configure "$(cat /tmp/configure_options)" --add-dynamic-module=/app/ngx_http_geoip2_module \
-	&& make 
+    && apt-get install -y --no-install-suggests --no-install-recommends \
+                patch make wget git devscripts debhelper dpkg-dev \
+                quilt lsb-release build-essential libxml2-utils xsltproc \
+                equivs git g++ libparse-recdescent-perl \
+    && git clone -b ${NGINX_VERSION}-${PKG_RELEASE%%~*} https://github.com/nginx/pkg-oss/ \
+    && cd pkg-oss \
+    && mkdir /tmp/packages \
+    && for module in geoip2 ndk lua; do \
+        echo "Building $module from pkg-oss sources"; \
+        cd /pkg-oss/debian; \
+        make rules-module-$module BASE_VERSION=$NGINX_VERSION NGINX_VERSION=$NGINX_VERSION; \
+        mk-build-deps --install --tool="apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes" debuild-module-$module/nginx-$NGINX_VERSION/debian/control; \
+        make module-$module BASE_VERSION=$NGINX_VERSION NGINX_VERSION=$NGINX_VERSION; \
+        find ../../ -maxdepth 1 -mindepth 1 -type f -name "*.deb" -exec mv -v {} /tmp/packages/ \;; \
+        BUILT_MODULES="$BUILT_MODULES $module"; \
+    done \
+    && echo "BUILT_MODULES=\"$BUILT_MODULES\"" > /tmp/packages/modules.env
 
 FROM base
 
-RUN \
-	apt-get update \
-	&& apt-get install --no-install-recommends --no-install-suggests -y libmaxminddb0 \
+RUN --mount=type=bind,target=/tmp/packages/,source=/tmp/packages/,from=builder \
+    apt-get update \
+    && . /tmp/packages/modules.env \
+    && for module in $BUILT_MODULES; do \
+           apt-get install --no-install-suggests --no-install-recommends -y /tmp/packages/nginx-module-${module}_${NGINX_VERSION}*.deb; \
+       done \
+    && rm -rf /var/lib/apt/lists/ \
 	&& apt-get purge -y --auto-remove
-
-COPY --from=builder /app/nginx-${NGINX_VERSION}/objs/ngx_http_geoip2_module.so /usr/lib/nginx/modules/ngx_http_geoip2_module.so
 
 

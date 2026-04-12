@@ -1,6 +1,6 @@
 # nginx-geoip2
 
-An image based on official [nginx image](https://github.com/nginxinc/docker-nginx) with compiled [ngx_http_geoip2_module](https://github.com/leev/ngx_http_geoip2_module).
+An image based on the official [nginx image](https://github.com/nginxinc/docker-nginx) with compiled [ngx_http_geoip2](https://github.com/leev/ngx_http_geoip2_module) and [ngx_lua](https://github.com/openresty/lua-nginx-module) modules.
 
 Image is based on debian version nginx container.
 
