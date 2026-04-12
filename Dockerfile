@@ -1,4 +1,4 @@
-ARG NGINX_VERSION=1.28
+ARG NGINX_VERSION=1.26
 
 FROM nginx:${NGINX_VERSION} AS base
 
@@ -28,8 +28,11 @@ RUN apt-get update \
                 quilt lsb-release build-essential libxml2-utils xsltproc \
                 equivs git g++ libparse-recdescent-perl \
     && git clone -b ${NGINX_VERSION}-${PKG_RELEASE%%~*} https://github.com/nginx/pkg-oss/ \
-    && cd pkg-oss \
-    && mkdir /tmp/packages \
+    && cd pkg-oss
+
+COPY --chmod=755 xslscript.pl /pkg-oss/contrib/xslscript/
+
+RUN mkdir /tmp/packages \
     && for module in geoip2 ndk lua; do \
         echo "Building $module from pkg-oss sources"; \
         cd /pkg-oss/debian; \
