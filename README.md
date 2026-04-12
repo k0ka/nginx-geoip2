@@ -10,3 +10,14 @@ $ docker run -d \
   -v /data/nginx:/etc/nginx \
   ghcr.io/k0ka/nginx-geoip2:1.28
 ```
+
+## Supported versions
+Stable versions:
+- 1.20
+- 1.22
+- 1.24
+- 1.26
+- 1.28
+
+Deprecated versions:
+- 1.18

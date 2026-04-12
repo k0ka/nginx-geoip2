@@ -9,11 +9,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        nginx: ['1.18', '1.20', '1.22', '1.24', '1.26', '1.28']
+        nginx: ['1.20', '1.22', '1.24', '1.26', '1.28']
         include:
           - latest: false
           - latest: true
-            nginx: '1.18'
+            nginx: '1.28'
 
     runs-on: ubuntu-latest
 
