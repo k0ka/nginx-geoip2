@@ -16,6 +16,9 @@ RUN . /etc/os-release \
     && if [ "$VERSION_CODENAME" = "buster" ]; then \
         echo 'deb http://archive.debian.org/debian buster main contrib non-free' >/etc/apt/sources.list \
         && echo 'deb http://archive.debian.org/debian-security buster/updates main contrib non-free' >>/etc/apt/sources.list; \
+    elif [ "$VERSION_CODENAME" = "bullseye" ]; then \
+        echo 'deb http://archive.debian.org/debian bullseye main contrib non-free' >/etc/apt/sources.list \
+        && echo 'deb http://archive.debian.org/debian-security bullseye-security main contrib non-free' >>/etc/apt/sources.list; \
     fi
 
 FROM base AS builder
