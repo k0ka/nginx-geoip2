@@ -8,7 +8,7 @@ The latest build of the image is on the GitHub. Use it as:
 ```shell
 $ docker run -d \
   -v /data/nginx:/etc/nginx \
-  ghcr.io/k0ka/nginx-geoip2:1.28
+  ghcr.io/k0ka/nginx-geoip2:1.30
 ```
 
 ## Supported versions
@@ -18,6 +18,7 @@ Stable versions:
 - 1.24
 - 1.26
 - 1.28
+- 1.30
 
 Deprecated versions:
 - 1.18
